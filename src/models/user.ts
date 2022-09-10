@@ -21,6 +21,12 @@ const userSchema = new mongoose.Schema<IUser>({
   },
   avatar: {
     type: String,
+    validate: {
+      validator: function(v: string) {
+        return /^((ftp|http|https):\/\/)?(www\.)?([A-Za-zА-Яа-я0-9]{1}[A-Za-zА-Яа-я0-9\-]*\.?)*\.{1}[A-Za-zА-Яа-я0-9-]{2,8}(\/([\w#!:.?+=&%@!\-\/])*)?/.test(v);
+      },
+      message: 'Неправильный формат ссылки',
+    },
     required: true,
   },
 });
