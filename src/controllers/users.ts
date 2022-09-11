@@ -18,10 +18,10 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
-export const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   return await User.find({})
     .then(user => res.send({ data: user }))
-    .catch(err => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch(next);
 }
 
 export const getUser = (req: Request, res: Response, next: NextFunction) => {
@@ -33,7 +33,13 @@ export const getUser = (req: Request, res: Response, next: NextFunction) => {
 
       res.send({ data: user })
     })
-    .catch(next);
+    .catch(err => {
+      if (err.name === 'CastError') {
+        next(new NotFoundError('Карточка с указанным _id не найдена.'))
+      } else {
+        next(err)
+      }
+    });
 }
 
 export const patchProfile = (req: IGetUserAuthInfoRequest, res: Response, next: NextFunction) => {

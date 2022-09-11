@@ -29,7 +29,13 @@ export const deleteCard = (req: Request, res: Response, next: NextFunction) => {
 
       res.send({ data: card });
     })
-    .catch(next);
+    .catch(err => {
+      if (err.name === 'CastError') {
+        next(new NotFoundError('Карточка с указанным _id не найдена.'))
+      } else {
+        next(err)
+      }
+    });
 };
 
 export const getAllCards = async (req: Request, res: Response, next: NextFunction) => {
@@ -50,6 +56,8 @@ export const putCardLike = (req: IGetUserAuthInfoRequest, res: Response, next: N
     .catch(err => {
       if (err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные для постановки лайка.'));
+      } else if (err.name === 'CastError') {
+        next(new NotFoundError('Передан несуществующий _id карточки.'));
       } else {
         next(err);
       }
@@ -68,6 +76,8 @@ export const deleteCardLike = (req: IGetUserAuthInfoRequest, res: Response, next
     .catch(err => {
       if (err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные для снятия лайка.'));
+      } else if (err.name === 'CastError') {
+        next(new NotFoundError('Передан несуществующий _id карточки.'));
       } else {
         next(err);
       }
