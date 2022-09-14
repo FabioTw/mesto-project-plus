@@ -1,19 +1,38 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { NextFunction, Request, Response } from 'express';
 import NotFoundError from '../errors/not-found-err';
 import { IGetUserAuthInfoRequest } from '../interfaces/interfaces';
 import User from '../models/user';
 import BadRequestError from '../errors/bad-request-err';
+import ConflictError from '../errors/conflict-error';
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
-  const { name, about, avatar } = req.body;
-
-  return User.create({ name, about, avatar })
-    .then((user) => res.send({ data: user }))
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
+  bcrypt.hash(password, 10)
+    .then((hash: string) => User.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    }))
+    .then((user: any) => res.send({ data: user }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
-      } else {
-        next(err);
+      switch (err.name) {
+        case 'ValidationError':
+          next(new BadRequestError('Переданы некорректные данные'));
+          break;
+        case 'MongoServerError':
+          next(new ConflictError('Пользователь с такой почтой уже существует'));
+          break;
+        default: next(err.message);
       }
     });
 };
@@ -21,6 +40,18 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
 export const getAllUsers = (req: Request, res: Response, next: NextFunction) => User.find({})
   .then((user) => res.send({ data: user }))
   .catch(next);
+
+export const getCurrentUser = (
+  req: IGetUserAuthInfoRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const id = req.user?._id;
+
+  User.findById(id)
+    .then((user) => res.send({ data: user }))
+    .catch(next);
+};
 
 export const getUser = (
   req: Request,
@@ -36,7 +67,7 @@ export const getUser = (
   })
   .catch((err) => {
     if (err.name === 'CastError') {
-      next(new NotFoundError('Карточка с указанным _id не найдена.'));
+      next(new NotFoundError('Пользователь по указанному _id не найден.'));
     } else {
       next(err);
     }
@@ -100,3 +131,27 @@ export const patchProfileAvatar = (
       next(err);
     }
   });
+
+export const login = (
+  req: IGetUserAuthInfoRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { email, password } = req.body;
+  const { JWT_SECRET } = process.env;
+
+  User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        {
+          _id: user._id,
+        },
+        `${JWT_SECRET}`,
+        {
+          expiresIn: '7d',
+        },
+      );
+      res.send({ token });
+    })
+    .catch(next);
+};
