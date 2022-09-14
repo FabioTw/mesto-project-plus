@@ -3,6 +3,7 @@ import { IGetUserAuthInfoRequest } from '../interfaces/interfaces';
 import NotFoundError from '../errors/not-found-err';
 import Card from '../models/card';
 import BadRequestError from '../errors/bad-request-err';
+import ForbiddenError from '../errors/forbidden-err';
 
 export const createCard = (req: IGetUserAuthInfoRequest, res: Response, next: NextFunction) => {
   const owner = req.user?._id;
@@ -19,25 +20,31 @@ export const createCard = (req: IGetUserAuthInfoRequest, res: Response, next: Ne
     });
 };
 
-export const deleteCard = (
-  req: Request,
+export const deleteCard = async (
+  req: IGetUserAuthInfoRequest,
   res: Response,
   next: NextFunction,
-) => Card.findByIdAndRemove(req.params.cardId)
-  .then((card) => {
-    if (!card) {
+) => {
+  const { cardId } = req.params;
+  const id = req.user?._id;
+  try {
+    const card = await Card.findById(cardId);
+    if (card === null) {
       throw new NotFoundError('Карточка с указанным _id не найдена.');
     }
-
-    res.send({ data: card });
-  })
-  .catch((err) => {
+    if (id !== card.owner.toString()) {
+      throw new ForbiddenError('У Вас нет доступа.');
+    }
+    await Card.deleteOne({ _id: cardId });
+    res.send(card);
+  } catch (err: any) {
     if (err.name === 'CastError') {
       next(new NotFoundError('Карточка с указанным _id не найдена.'));
     } else {
       next(err);
     }
-  });
+  }
+};
 
 export const getAllCards = (req: Request, res: Response, next: NextFunction) => Card.find({})
   .then((card) => res.send({ data: card }))
