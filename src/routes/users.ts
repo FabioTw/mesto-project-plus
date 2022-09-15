@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import idValidation from '../utils/validation';
 import {
   createUser,
   getUser,
@@ -14,44 +15,26 @@ const { celebrate, Joi } = require('celebrate');
 const router = Router();
 const user = Router();
 
-user.get('/', celebrate({
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), getAllUsers);
-
-user.get('/me', celebrate({
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), getCurrentUser);
+user.get('/', getAllUsers);
+user.get('/me', getCurrentUser);
 
 user.patch('/me', celebrate({
   body: Joi.object().keys({
     name: Joi.string().required().min(2).max(30),
     about: Joi.string().required().min(2).max(200),
   }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
 }), patchProfile);
 
 user.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
     avatar: Joi.string().pattern(/^((http|https):\/\/)(www\.)?([A-Za-zА-Яа-я0-9]{1}[A-Za-zА-Яа-я0-9-]*\.?)*\.{1}[A-Za-zА-Яа-я0-9-]{2,8}(\/([\w#!:.?+=&%@!\-/])*)?/),
   }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
 }), patchProfileAvatar);
 
 user.get('/:userId', celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().alphanum().length(24),
+    userId: Joi.string().required().custom(idValidation, 'custom validation'),
   }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
 }), getUser);
 
 router.post('/signin', celebrate({

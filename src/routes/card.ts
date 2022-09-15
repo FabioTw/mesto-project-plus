@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import idValidation from '../utils/validation';
 import {
   createCard,
   deleteCard,
@@ -11,20 +12,14 @@ const { celebrate, Joi } = require('celebrate');
 
 const cards = Router();
 
-cards.get('/', celebrate({
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), getAllCards);
-
-cards.delete('/:cardId', celebrate({
+const cardIdValidate = celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().alphanum().length(24),
+    cardId: Joi.string().required().custom(idValidation, 'custom validation'),
   }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), deleteCard);
+});
+
+cards.get('/', getAllCards);
+cards.delete('/:cardId', cardIdValidate, deleteCard);
 
 cards.post('/', celebrate({
   body: Joi.object().keys({
@@ -32,27 +27,9 @@ cards.post('/', celebrate({
     link: Joi.string().required().pattern(/^((http|https):\/\/)(www\.)?([A-Za-zА-Яа-я0-9]{1}[A-Za-zА-Яа-я0-9-]*\.?)*\.{1}[A-Za-zА-Яа-я0-9-]{2,8}(\/([\w#!:.?+=&%@!\-/])*)?/),
     owner: Joi.string().required(),
   }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
 }), createCard);
 
-cards.put('/:cardId/likes', celebrate({
-  params: Joi.object().keys({
-    cardId: Joi.string().alphanum().length(24),
-  }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), putCardLike);
-
-cards.delete('/:cardId/likes', celebrate({
-  params: Joi.object().keys({
-    cardId: Joi.string().alphanum().length(24),
-  }),
-  headers: Joi.object().keys({
-    authorization: Joi.string().required(),
-  }).unknown(true),
-}), deleteCardLike);
+cards.put('/:cardId/likes', cardIdValidate, putCardLike);
+cards.delete('/:cardId/likes', cardIdValidate, deleteCardLike);
 
 export default cards;
