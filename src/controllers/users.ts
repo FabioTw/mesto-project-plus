@@ -32,7 +32,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
         case 'MongoServerError':
           next(new ConflictError('Пользователь с такой почтой уже существует'));
           break;
-        default: next(err.message);
+        default: next(err);
       }
     });
 };
