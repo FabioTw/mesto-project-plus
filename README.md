@@ -47,6 +47,3 @@ DELETE /cards/:cardId/likes — убрать лайк с карточки
 
 ### `npm run build`
 Собирает приложение для продакшана в папку build.
-
-### `npm run deploy`
-Собирает приложение и выгружает на GitHub Pages
